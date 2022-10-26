@@ -41,7 +41,30 @@ def check_password(name, password):
         return False
 
 
+def add_header(message):
+    """
+    l is len of mes
+    if l >= 10000 l is 9999
+    if l < 1000 add zeros to len l is 4
+    """
+    # get len of message
+    l = len(message)
+    # if len of message >= 10000 then len of message is 9999
+    if l >= 10000:
+        l = 9999
+    # if len of message < 1000 then add zeros to len of message
+    if l < 1000:
+        l = '0' * (4 - len(str(l))) + str(l)
+    # return len of message and message
+    return str(l) + message
 
+
+def read_message(message):
+    """
+    return mes without first four chars
+    """
+    # return message without first four chars
+    return message[4:]
 
 
 def main():
@@ -76,37 +99,44 @@ def main():
         conn, addr = s.accept()
         print(f'Connected to {addr}')
         # get name and password from client
-        name = conn.recv(1024).decode()
-        password = conn.recv(1024).decode()
+        name = read_header(conn.recv(1024).decode())
+        password = read_header(conn.recv(1024).decode())
         # check if name and password is correct
         if check_password(name, password):
             # send message to client
-            conn.send('Welcome back!'.encode())
+            conn.send(add_header('Welcome back!').encode())
             # write Welcome back and name to log file
             write_log('Server', f'Welcome back! {name}')
             # looped connection to client
             while True:
                 # get message from client
-                message = conn.recv(1024).decode()
+                message = read_header(conn.recv(1024).decode())
                 # if message is exit then break
                 # or if connection is lost then break
                 if message == 'exit' or not message:
                     break
                 if message == 'end':
+                    # close socket
+                    s.close()
+                    # write log server is shutdown
+                    write_log('Server', 'Server is shutdown')
                     return
                 # write message to log file
                 write_log(name, message)
                 # send message to client
-                conn.send(message.encode())
+                conn.send(add_header(message).encode())
         else:
             # send message to client
-            conn.send('Welcome!'.encode())
+            conn.send(add_header('Welcome!').encode())
             # write hashed password to password file
             write_password(name, password)
             # write welcome and name to log file
             write_log(name, 'Welcome!')
         # close connection
         conn.close()
+        conn.close()
+        # write log name is disconnected
+        write_log('Server', f'{name} is disconnected')
 
 
 main()
